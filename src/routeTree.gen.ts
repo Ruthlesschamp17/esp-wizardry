@@ -10,33 +10,63 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WorkspaceIdRouteImport } from './routes/workspace.$id'
+import { Route as ReportIdRouteImport } from './routes/report.$id'
+import { Route as ProjectIdRouteImport } from './routes/project.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspaceIdRoute = WorkspaceIdRouteImport.update({
+  id: '/workspace/$id',
+  path: '/workspace/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportIdRoute = ReportIdRouteImport.update({
+  id: '/report/$id',
+  path: '/report/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectIdRoute = ProjectIdRouteImport.update({
+  id: '/project/$id',
+  path: '/project/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/project/$id': typeof ProjectIdRoute
+  '/report/$id': typeof ReportIdRoute
+  '/workspace/$id': typeof WorkspaceIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/project/$id': typeof ProjectIdRoute
+  '/report/$id': typeof ReportIdRoute
+  '/workspace/$id': typeof WorkspaceIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/project/$id': typeof ProjectIdRoute
+  '/report/$id': typeof ReportIdRoute
+  '/workspace/$id': typeof WorkspaceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/project/$id' | '/report/$id' | '/workspace/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/project/$id' | '/report/$id' | '/workspace/$id'
+  id: '__root__' | '/' | '/project/$id' | '/report/$id' | '/workspace/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ProjectIdRoute: typeof ProjectIdRoute
+  ReportIdRoute: typeof ReportIdRoute
+  WorkspaceIdRoute: typeof WorkspaceIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +78,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workspace/$id': {
+      id: '/workspace/$id'
+      path: '/workspace/$id'
+      fullPath: '/workspace/$id'
+      preLoaderRoute: typeof WorkspaceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/report/$id': {
+      id: '/report/$id'
+      path: '/report/$id'
+      fullPath: '/report/$id'
+      preLoaderRoute: typeof ReportIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/project/$id': {
+      id: '/project/$id'
+      path: '/project/$id'
+      fullPath: '/project/$id'
+      preLoaderRoute: typeof ProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ProjectIdRoute: ProjectIdRoute,
+  ReportIdRoute: ReportIdRoute,
+  WorkspaceIdRoute: WorkspaceIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
