@@ -1,15 +1,22 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "intel-air-esp-pro",
+  "version": "1.0.0",
+  "description": "Intel Air ESP Pro — External Static Pressure calculator for HVAC contractors",
+  "author": "Intel Air Group",
   "private": true,
   "sideEffects": false,
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "electron:build": "vite build --config vite.electron.config.ts",
+    "electron:dev": "vite build --config vite.electron.config.ts && electron .",
+    "electron:pack": "bun run electron:build && electron-builder --win --x64"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
