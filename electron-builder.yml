@@ -1,0 +1,23 @@
+appId: com.intelair.esppro
+productName: Intel Air ESP Pro
+copyright: Copyright © 2026 Intel Air Group
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist-electron/**/*
+  - electron/**/*
+  - package.json
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: IntelAirESPPro-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Intel Air ESP Pro
