@@ -26,7 +26,7 @@ function createWindow() {
     return { action: "deny" };
   });
 
-  const indexPath = path.join(__dirname, "..", "dist-electron", "renderer", "index.html");
+  const indexPath = path.join(__dirname, "..", "dist-electron", "renderer", "electron.html");
   win.loadFile(indexPath);
 
   if (isDev) win.webContents.openDevTools({ mode: "detach" });
