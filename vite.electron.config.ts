@@ -4,15 +4,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import tsconfigPaths from "vite-tsconfig-paths";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import path from "node:path";
 
 export default defineConfig({
   base: "./",
-  root: path.resolve(__dirname, "electron/renderer"),
   plugins: [
-    tsconfigPaths(),
     tanstackRouter({
       target: "react",
       routesDirectory: path.resolve(__dirname, "src/routes"),
@@ -32,5 +29,8 @@ export default defineConfig({
     emptyOutDir: true,
     target: "chrome120",
     sourcemap: false,
+    rollupOptions: {
+      input: path.resolve(__dirname, "electron.html"),
+    },
   },
 });
