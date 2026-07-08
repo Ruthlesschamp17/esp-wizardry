@@ -39,7 +39,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
             Try again
           </button>
-          <a href="/" className="rounded-md border border-border px-4 py-2 text-sm">Dashboard</a>
+          <Link to="/" className="rounded-md border border-border px-4 py-2 text-sm">Dashboard</Link>
         </div>
       </div>
     </div>
