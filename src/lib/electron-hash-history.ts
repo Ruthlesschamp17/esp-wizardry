@@ -75,7 +75,12 @@ export function createElectronHashHistory(): RouterHistory {
     }
 
     currentLocation = parsePath(normalized, currentState);
-    notify({ type: action });
+
+    // Electron runs this app from file://. TanStack's normal SPA transition can
+    // leave the packaged renderer wedged after route changes that also update
+    // persisted project state. A real hash-page reload is slower, but it is the
+    // smallest Electron-only change that makes packaged routing deterministic.
+    window.setTimeout(() => window.location.reload(), 0);
   };
 
   const onHashChange = () => {
