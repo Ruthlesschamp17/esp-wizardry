@@ -1,16 +1,17 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { RouterProvider, createRouter, createHashHistory } from "@tanstack/react-router";
+import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { QueryClient } from "@tanstack/react-query";
 
 import { routeTree } from "./routeTree.gen";
+import { createElectronHashHistory } from "./lib/electron-hash-history";
 import "./styles.css";
 
 const queryClient = new QueryClient();
 
 const router = createRouter({
   routeTree,
-  history: createHashHistory(),
+  history: createElectronHashHistory(),
   context: { queryClient },
   defaultPreloadStaleTime: 0,
   scrollRestoration: true,

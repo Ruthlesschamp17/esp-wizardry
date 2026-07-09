@@ -27,6 +27,13 @@ function Dashboard() {
 
   const recent = order.map((id) => projects[id]).filter(Boolean).slice(0, 12);
 
+  const openNewProject = () => {
+    const id = createProject();
+    window.setTimeout(() => {
+      nav({ to: "/project/$id", params: { id } });
+    }, 0);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
@@ -49,10 +56,7 @@ function Dashboard() {
                 wrapped in a fast, single-screen workflow.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button size="lg" onClick={() => {
-                  const id = createProject();
-                  nav({ to: "/project/$id", params: { id } });
-                }}>
+                <Button size="lg" onClick={openNewProject}>
                   <FilePlus2 className="mr-1.5 h-4 w-4" /> New Project
                 </Button>
                 <OpenProjectDialog />
@@ -69,7 +73,7 @@ function Dashboard() {
           {/* Quick actions */}
           <section className="grid grid-cols-2 gap-4 content-start">
             <QuickCard icon={<FilePlus2 className="h-5 w-5" />} title="New Project" desc="Start a fresh ESP calculation."
-              onClick={() => { const id = createProject(); nav({ to: "/project/$id", params: { id } }); }} />
+              onClick={openNewProject} />
             <QuickCard icon={<FolderOpen className="h-5 w-5" />} title="Open" desc="Recent projects list." />
             <QuickCard icon={<Settings className="h-5 w-5" />} title="Preferences" desc="Units, defaults, safety factor." />
             <QuickCard icon={<Info className="h-5 w-5" />} title="About" desc="Version and engineering references." />
