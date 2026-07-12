@@ -47,21 +47,6 @@ function calcSegment(
   };
 }
 
-function recommendFan(esp: number, qLps: number): { type: string; kw: number } {
-  const type =
-    esp < 250 ? "Forward-Curved Centrifugal"
-      : esp < 750 ? "Backward-Inclined Centrifugal"
-      : esp < 1500 ? "Airfoil Centrifugal (SWSI)"
-      : "Airfoil Centrifugal (DWDI) / Plenum Fan";
-  // Air power W = Q(m³/s) * ΔP(Pa). Assume η_tot ≈ 0.65, motor factor 1.15.
-  const qm3s = qLps / 1000;
-  const shaftKw = (qm3s * esp) / (0.65 * 1000);
-  const motorKw = shaftKw * 1.15;
-  // Round up to next standard motor size
-  const std = [0.37, 0.55, 0.75, 1.1, 1.5, 2.2, 3.0, 4.0, 5.5, 7.5, 11, 15, 18.5, 22, 30, 37, 45, 55, 75, 90, 110];
-  const pick = std.find((s) => s >= motorKw) ?? Math.ceil(motorKw);
-  return { type, kw: pick };
-}
 
 export function calculate(p: EspProject): CalcResult {
   const rho = airDensity((p.airflow.supplyTempC + p.airflow.returnTempC) / 2, p.meta.altitude);

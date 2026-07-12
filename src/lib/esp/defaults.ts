@@ -22,25 +22,21 @@ export const TERMINAL_DEFAULT_PA: Record<TerminalKind, number> = {
   "weather-louver": 50,
 };
 
+// External-only components. Never include internal AHU losses (fan, coils,
+// internal filters, mixing box, drain pan) — those belong to the AHU
+// manufacturer's Total Static Pressure, not ESP.
 export function defaultAhuComponents(): AhuComponent[] {
   const rows: Array<[string, number, boolean]> = [
-    ["Pre Filter (G4) — final ΔP", 150, true],
-    ["Fine Filter (F7) — final ΔP", 250, true],
-    ["HEPA Filter — final ΔP", 500, false],
-    ["Cooling Coil (wet)", 200, true],
-    ["Heating Coil", 80, true],
-    ["Fire Damper", 15, false],
-    ["Smoke Damper", 20, false],
-    ["Mixing Box", 25, true],
-    ["Drain Pan", 5, true],
-    ["UV Lamp Section", 15, false],
-    ["Humidifier", 40, false],
-    ["Heat Recovery (Plate/Wheel)", 150, false],
-    ["Sound Attenuator (internal)", 60, false],
-    ["Miscellaneous / Access", 25, true],
+    ["Duct Heater", 40, false],
+    ["Sound Attenuator (Silencer)", 60, false],
+    ["HEPA Filter (in-duct)", 500, false],
+    ["Bag Filter (in-duct)", 150, false],
+    ["Pre Filter (in-duct)", 80, false],
+    ["UV Section (in-duct)", 15, false],
+    ["Terminal Box (VAV/CAV)", 75, false],
   ];
   return rows.map(([name, dp, enabled], i) => ({
-    id: `ahu-${i}`,
+    id: `ext-${i}`,
     name,
     enabled,
     pressureDrop: dp,
