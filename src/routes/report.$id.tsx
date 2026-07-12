@@ -75,9 +75,9 @@ function Report() {
 
           {/* ESP Summary */}
           <section className="mt-8 grid grid-cols-3 gap-4">
-            <SumCard label="Total ESP" value={`${fmt(result.totalEspPa, 0)} Pa`} big />
-            <SumCard label="Recommended Fan Static" value={`${fmt(result.recommendedFanStaticPa, 0)} Pa`} />
-            <SumCard label="Motor" value={`${result.recommendedMotorKW} kW`} />
+            <SumCard label="External Static Pressure" value={`${fmt(result.totalEspPa, 0)} Pa`} big />
+            <SumCard label="ESP (mmWG)" value={`${fmt(result.totalEspPa / 9.80665, 1)} mmWG`} />
+            <SumCard label="ESP (in.w.g.)" value={`${fmt(result.totalEspPa / 249.089, 3)} in.w.g.`} />
           </section>
 
           <section className="mt-6">
@@ -86,7 +86,7 @@ function Report() {
               <table className="w-full text-sm">
                 <tbody>
                   {[
-                    ["Internal AHU Loss", result.ahuInternalLoss],
+                    ["External Components Loss", result.ahuInternalLoss],
                     ["Supply Duct Loss", result.supplyLoss],
                     ["Return Duct Loss", result.returnLoss],
                     ["Fresh Air Loss", result.freshLoss],
@@ -102,12 +102,15 @@ function Report() {
                     </tr>
                   ))}
                   <tr className="bg-primary/10">
-                    <td className="px-3 py-2 font-semibold">TOTAL ESP</td>
+                    <td className="px-3 py-2 font-semibold">EXTERNAL STATIC PRESSURE</td>
                     <td className="px-3 py-2 numeric text-right font-bold text-primary">{fmt(result.totalEspPa, 0)} Pa</td>
                   </tr>
                 </tbody>
               </table>
             </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              ESP excludes fan, coil, internal AHU filter, mixing box and drain pan losses — those are computed by the AHU manufacturer as Total Static Pressure.
+            </p>
           </section>
 
           <section className="mt-6">
@@ -161,7 +164,7 @@ function Report() {
                 <Line label="Air density" value={`${fmt(result.airDensity, 4)} kg/m³`} />
                 <Line label="Dyn. viscosity" value={result.dynamicViscosity.toExponential(3) + " Pa·s"} />
                 <Line label="Terminal" value={TERMINAL_LABEL[project.terminal.kind]} />
-                <Line label="Fan type" value={result.recommendedFanType} />
+                <Line label="Safety factor" value={`+${((project.meta.safetyFactor - 1) * 100).toFixed(0)} %`} />
                 <Line label="Status" value={result.engineeringStatus.toUpperCase()} />
                 <Line label="Air balance" value={result.airBalance.ok ? "OK" : `Δ ${result.airBalance.supplyReturnDeltaPct.toFixed(1)}%`} />
               </div>
