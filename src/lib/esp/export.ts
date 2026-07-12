@@ -170,7 +170,7 @@ export function exportExcel(project: EspProject, result: CalcResult) {
 
   const breakdown = [
     ["Component", "Pressure Loss (Pa)"],
-    ["Internal AHU", result.ahuInternalLoss],
+    ["External Components", result.ahuInternalLoss],
     ["Supply Ducts", result.supplyLoss],
     ["Return Ducts", result.returnLoss],
     ["Fresh Air", result.freshLoss],
@@ -179,10 +179,9 @@ export function exportExcel(project: EspProject, result: CalcResult) {
     ["Terminal", result.terminalLoss],
     ["Subtotal", result.subtotalPa],
     ["Safety Added", result.safetyAddedPa],
-    ["TOTAL ESP", result.totalEspPa],
-    ["Recommended Fan Static", result.recommendedFanStaticPa],
-    ["Fan Type", result.recommendedFanType],
-    ["Motor (kW)", result.recommendedMotorKW],
+    ["EXTERNAL STATIC PRESSURE (Pa)", result.totalEspPa],
+    ["ESP (mmWG)", result.totalEspPa / 9.80665],
+    ["ESP (in.w.g.)", result.totalEspPa / 249.089],
     ["Air Density (kg/m³)", result.airDensity],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(breakdown), "ESP");
