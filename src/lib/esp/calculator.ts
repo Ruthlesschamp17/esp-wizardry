@@ -47,21 +47,6 @@ function calcSegment(
   };
 }
 
-function recommendFan(esp: number, qLps: number): { type: string; kw: number } {
-  const type =
-    esp < 250 ? "Forward-Curved Centrifugal"
-      : esp < 750 ? "Backward-Inclined Centrifugal"
-      : esp < 1500 ? "Airfoil Centrifugal (SWSI)"
-      : "Airfoil Centrifugal (DWDI) / Plenum Fan";
-  // Air power W = Q(m³/s) * ΔP(Pa). Assume η_tot ≈ 0.65, motor factor 1.15.
-  const qm3s = qLps / 1000;
-  const shaftKw = (qm3s * esp) / (0.65 * 1000);
-  const motorKw = shaftKw * 1.15;
-  // Round up to next standard motor size
-  const std = [0.37, 0.55, 0.75, 1.1, 1.5, 2.2, 3.0, 4.0, 5.5, 7.5, 11, 15, 18.5, 22, 30, 37, 45, 55, 75, 90, 110];
-  const pick = std.find((s) => s >= motorKw) ?? Math.ceil(motorKw);
-  return { type, kw: pick };
-}
 
 export function calculate(p: EspProject): CalcResult {
   const rho = airDensity((p.airflow.supplyTempC + p.airflow.returnTempC) / 2, p.meta.altitude);
@@ -83,13 +68,14 @@ export function calculate(p: EspProject): CalcResult {
   const fittingsLossTotal = segResults.reduce((s, r) => s + r.fittingLossPa, 0);
   const terminalLoss = p.terminal.pressureDrop;
 
-  // ESP model: AHU internal + supply-side external + return-side external + terminal
+  // ESP model — EXTERNAL only. Never includes internal AHU losses
+  // (fan, coils, internal filters, mixing box, drain pan). Those belong to
+  // Total Static Pressure calculated by the AHU manufacturer.
   const subtotal =
     ahuInternalLoss + supplyLoss + returnLoss + freshLoss + exhaustLoss + terminalLoss;
 
   const safetyAdded = subtotal * (p.meta.safetyFactor - 1);
   const totalEsp = subtotal + safetyAdded;
-  const recommendedFanStatic = totalEsp * 1.05;
 
   // Critical path: greatest single-side (supply chain) + return chain
   const supplyPath = segResults
@@ -100,10 +86,7 @@ export function calculate(p: EspProject): CalcResult {
     .filter((r) => r.kind === "return")
     .sort((a, b) => b.totalLossPa - a.totalLossPa)
     .map((r) => r.section);
-  const criticalPath = ["AHU", ...supplyPath, "Terminal", ...returnPath];
-
-  // Fan sizing driven by supply airflow
-  const rec = recommendFan(recommendedFanStatic, p.airflow.supply);
+  const criticalPath = [...supplyPath, "Terminal", ...returnPath];
 
   // Warnings
   const warnings: EngineWarning[] = [];
@@ -161,8 +144,8 @@ export function calculate(p: EspProject): CalcResult {
     ahuInternalLoss, supplyLoss, returnLoss, freshLoss, exhaustLoss,
     fittingsLossTotal, terminalLoss,
     subtotalPa: subtotal, safetyAddedPa: safetyAdded, totalEspPa: totalEsp,
-    recommendedFanStaticPa: recommendedFanStatic,
-    recommendedFanType: rec.type, recommendedMotorKW: rec.kw,
+    recommendedFanStaticPa: 0,
+    recommendedFanType: "", recommendedMotorKW: 0,
     criticalPath, segments: segResults, warnings,
     engineeringStatus: status, airBalance: bal,
   };

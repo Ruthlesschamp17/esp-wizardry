@@ -108,9 +108,19 @@ function Workspace() {
             </div>
           </Panel>
 
-          {/* SECTION B — AHU */}
-          <Panel icon={<Layers className="h-4 w-4" />} title="B · AHU Components"
-            subtitle={`Internal loss: ${fmt(result.ahuInternalLoss, 0)} Pa`}>
+          {/* SECTION B — External Components */}
+          <Panel icon={<Layers className="h-4 w-4" />} title="B · External Components"
+            subtitle={`External components loss: ${fmt(result.ahuInternalLoss, 0)} Pa · (excludes internal AHU losses)`}
+            action={
+              <Button size="sm" variant="secondary" onClick={() => set((p) => ({
+                ...p, ahuComponents: [...p.ahuComponents, {
+                  id: "ext-" + Math.random().toString(36).slice(2, 8),
+                  name: "Custom Component", enabled: true, pressureDrop: 0,
+                }],
+              }))}>
+                <Plus className="h-4 w-4 mr-1" /> Add Custom
+              </Button>
+            }>
             <Accordion type="multiple" defaultValue={["ahu"]}>
               <AccordionItem value="ahu" className="border-none">
                 <AccordionTrigger className="py-1 text-sm">Show / hide components</AccordionTrigger>
@@ -122,9 +132,11 @@ function Workspace() {
                           onCheckedChange={(v) => set((p) => ({
                             ...p, ahuComponents: p.ahuComponents.map((x) => x.id === c.id ? { ...x, enabled: !!v } : x),
                           }))} />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm truncate">{c.name}</div>
-                        </div>
+                        <Input className="h-8 flex-1 min-w-0 text-sm" value={c.name}
+                          onChange={(e) => set((p) => ({
+                            ...p, ahuComponents: p.ahuComponents.map((x) =>
+                              x.id === c.id ? { ...x, name: e.target.value } : x),
+                          }))} />
                         <div className="flex items-center gap-1">
                           <Input type="number" className="h-8 w-20 text-right numeric" value={c.pressureDrop}
                             onChange={(e) => set((p) => ({
@@ -133,9 +145,19 @@ function Workspace() {
                             }))} />
                           <span className="text-xs text-muted-foreground">Pa</span>
                         </div>
+                        <button
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => set((p) => ({
+                            ...p, ahuComponents: p.ahuComponents.filter((x) => x.id !== c.id),
+                          }))}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     ))}
                   </div>
+                  <p className="mt-3 text-[11px] text-muted-foreground">
+                    External duct-side components only. Do <b>not</b> include fan, coils, internal AHU filters, mixing box or drain pan — those are computed by the AHU manufacturer as part of Total Static Pressure.
+                  </p>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -276,10 +298,12 @@ function Workspace() {
                 <span className="numeric text-4xl font-semibold text-primary">{fmt(result.totalEspPa, 0)}</span>
                 <span className="text-sm text-muted-foreground">Pa</span>
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">≈ {fmt(result.totalEspPa / 249.089, 2)} inWG</div>
+              <div className="mt-1 text-xs text-muted-foreground numeric">
+                ≈ {fmt(result.totalEspPa / 9.80665, 1)} mmWG · {fmt(result.totalEspPa / 249.089, 3)} in.w.g.
+              </div>
 
               <div className="mt-4 space-y-1.5 text-xs">
-                <Row label="Internal AHU" value={result.ahuInternalLoss} />
+                <Row label="External Components" value={result.ahuInternalLoss} />
                 <Row label="Supply Ducts" value={result.supplyLoss} />
                 <Row label="Return Ducts" value={result.returnLoss} />
                 <Row label="Fresh Air" value={result.freshLoss} />
@@ -288,13 +312,11 @@ function Workspace() {
                 <div className="border-t border-border my-2" />
                 <Row label="Subtotal" value={result.subtotalPa} strong />
                 <Row label={`Safety (+${((project.meta.safetyFactor - 1) * 100).toFixed(0)} %)`} value={result.safetyAddedPa} />
-                <Row label="TOTAL ESP" value={result.totalEspPa} strong highlight />
+                <Row label="EXTERNAL STATIC PRESSURE" value={result.totalEspPa} strong highlight />
               </div>
 
-              <div className="mt-4 rounded-md bg-background/60 border border-border p-3 text-xs space-y-1">
-                <div className="flex justify-between"><span className="text-muted-foreground">Fan Static</span><span className="numeric font-medium">{fmt(result.recommendedFanStaticPa, 0)} Pa</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Fan Type</span><span className="font-medium text-right">{result.recommendedFanType}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Motor Size</span><span className="numeric font-medium">{result.recommendedMotorKW} kW</span></div>
+              <div className="mt-4 rounded-md bg-background/60 border border-border p-3 text-[11px] text-muted-foreground leading-relaxed">
+                This value is the <b className="text-foreground">External Static Pressure</b> the HVAC contractor submits to the AHU manufacturer. It excludes fan, coil, internal filter, mixing box and drain pan losses.
               </div>
 
               <div className="mt-4">

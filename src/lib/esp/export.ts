@@ -52,7 +52,7 @@ export function exportPdf(project: EspProject, result: CalcResult) {
 
   // ESP breakdown
   doc.setFont("helvetica", "bold");
-  doc.text("ESP Breakdown (Pa)", M, y);
+  doc.text("External Static Pressure Breakdown (Pa)", M, y);
   y += 4;
   autoTable(doc, {
     startY: y + 4,
@@ -61,7 +61,7 @@ export function exportPdf(project: EspProject, result: CalcResult) {
     headStyles: { fillColor: [245, 180, 80], textColor: 30 },
     head: [["Component", "Pressure Loss (Pa)"]],
     body: [
-      ["Internal AHU Loss", fmt(result.ahuInternalLoss, 0)],
+      ["External Components Loss", fmt(result.ahuInternalLoss, 0)],
       ["Supply Duct Loss", fmt(result.supplyLoss, 1)],
       ["Return Duct Loss", fmt(result.returnLoss, 1)],
       ["Fresh Air Loss", fmt(result.freshLoss, 1)],
@@ -70,11 +70,10 @@ export function exportPdf(project: EspProject, result: CalcResult) {
       ["Terminal Loss", fmt(result.terminalLoss, 0)],
       ["Subtotal", fmt(result.subtotalPa, 1)],
       [`Safety Factor (+${((project.meta.safetyFactor - 1) * 100).toFixed(0)} %)`, fmt(result.safetyAddedPa, 1)],
-      [{ content: "TOTAL ESP", styles: { fontStyle: "bold" } },
+      [{ content: "EXTERNAL STATIC PRESSURE", styles: { fontStyle: "bold" } },
        { content: `${fmt(result.totalEspPa, 0)} Pa`, styles: { fontStyle: "bold" } }],
-      ["Recommended Fan Static", `${fmt(result.recommendedFanStaticPa, 0)} Pa`],
-      ["Recommended Fan Type", result.recommendedFanType],
-      ["Recommended Motor", `${result.recommendedMotorKW} kW`],
+      ["ESP (mmWG)", `${fmt(result.totalEspPa / 9.80665, 1)} mmWG`],
+      ["ESP (in.w.g.)", `${fmt(result.totalEspPa / 249.089, 3)} in.w.g.`],
     ],
   });
   y = (doc as any).lastAutoTable.finalY + 16;
@@ -171,7 +170,7 @@ export function exportExcel(project: EspProject, result: CalcResult) {
 
   const breakdown = [
     ["Component", "Pressure Loss (Pa)"],
-    ["Internal AHU", result.ahuInternalLoss],
+    ["External Components", result.ahuInternalLoss],
     ["Supply Ducts", result.supplyLoss],
     ["Return Ducts", result.returnLoss],
     ["Fresh Air", result.freshLoss],
@@ -180,10 +179,9 @@ export function exportExcel(project: EspProject, result: CalcResult) {
     ["Terminal", result.terminalLoss],
     ["Subtotal", result.subtotalPa],
     ["Safety Added", result.safetyAddedPa],
-    ["TOTAL ESP", result.totalEspPa],
-    ["Recommended Fan Static", result.recommendedFanStaticPa],
-    ["Fan Type", result.recommendedFanType],
-    ["Motor (kW)", result.recommendedMotorKW],
+    ["EXTERNAL STATIC PRESSURE (Pa)", result.totalEspPa],
+    ["ESP (mmWG)", result.totalEspPa / 9.80665],
+    ["ESP (in.w.g.)", result.totalEspPa / 249.089],
     ["Air Density (kg/m³)", result.airDensity],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(breakdown), "ESP");
