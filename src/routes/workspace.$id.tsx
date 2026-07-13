@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useProjects } from "@/lib/esp/store";
 import { calculate } from "@/lib/esp/calculator";
 import { MATERIAL_LABEL } from "@/lib/esp/physics";
-import { TERMINAL_LABEL, TERMINAL_DEFAULT_PA } from "@/lib/esp/defaults";
+import { TERMINAL_LABEL, TERMINAL_DEFAULT_PA, EXTERNAL_COMPONENT_PRESETS } from "@/lib/esp/defaults";
 import { FITTINGS, FITTING_CATEGORIES } from "@/lib/esp/fittings";
 import type { DuctSegment, Fitting, SegmentKind, Shape, TerminalKind } from "@/lib/esp/types";
 import { AppHeader } from "@/components/app-header";
@@ -13,17 +13,15 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, FileText, Plus, Trash2, Wrench, AlertTriangle, ChevronsRight, Copy, Gauge, Sparkles, Wind, Thermometer, Layers, Route as RouteIcon, Cog, TriangleAlert } from "lucide-react";
+import { ArrowLeft, FileText, Plus, Trash2, Wrench, Copy, Gauge, Sparkles, Wind, Layers, Route as RouteIcon, Cog } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/workspace/$id")({
   head: () => ({
     meta: [
       { title: "ESP Workspace — Intel Air ESP Pro" },
-      { name: "description", content: "Airflow, AHU components, duct network, fittings, and terminals — all in one workspace." },
+      { name: "description", content: "External Static Pressure workspace — project info, external components, duct network and terminals." },
     ],
   }),
   component: Workspace,
@@ -32,6 +30,8 @@ export const Route = createFileRoute("/workspace/$id")({
 const kindLabel: Record<SegmentKind, string> = {
   supply: "Supply", return: "Return", fresh: "Fresh Air", exhaust: "Exhaust",
 };
+
+const AIRFLOW_UNITS = ["L/s", "CMH", "CFM"] as const;
 
 function fmt(n: number, d = 1) {
   if (!Number.isFinite(n)) return "—";
@@ -54,8 +54,8 @@ function Workspace() {
   }
 
   const result = useMemo(() => calculate(project), [project]);
-
   const set = (updater: (p: typeof project) => typeof project) => update(id, updater);
+  const unit = project.meta.airflowUnit ?? "L/s";
 
   return (
     <div className="min-h-screen bg-background">
@@ -63,7 +63,7 @@ function Workspace() {
         <div className="flex items-center gap-2">
           <div className="hidden md:flex items-center gap-2 rounded-md border border-border bg-background/60 px-3 py-1.5 text-xs">
             <Gauge className="h-3.5 w-3.5 text-primary" />
-            <span className="text-muted-foreground">Total ESP</span>
+            <span className="text-muted-foreground">External Static Pressure</span>
             <span className="numeric font-semibold text-primary">{fmt(result.totalEspPa, 0)} Pa</span>
           </div>
           <Button variant="ghost" size="sm" onClick={() => nav({ to: "/project/$id", params: { id } })}>
@@ -77,40 +77,49 @@ function Workspace() {
 
       <main className="mx-auto max-w-[1600px] px-6 py-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6 min-w-0">
-          {/* SECTION A — Airflow */}
-          <Panel icon={<Wind className="h-4 w-4" />} title="A · Airflow" subtitle="Volumes & temperatures — drives density and balance">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                ["Supply (L/s)", "supply"],
-                ["Return (L/s)", "return_"],
-                ["Fresh Air (L/s)", "fresh"],
-                ["Exhaust (L/s)", "exhaust"],
-              ].map(([label, key]) => (
-                <NumField key={key} label={label} value={(project.airflow as any)[key]}
-                  onChange={(v) => set((p) => ({ ...p, airflow: { ...p.airflow, [key]: v } }))} />
-              ))}
-              <NumField label="Supply Temp (°C)" value={project.airflow.supplyTempC}
-                onChange={(v) => set((p) => ({ ...p, airflow: { ...p.airflow, supplyTempC: v } }))} />
-              <NumField label="Return Temp (°C)" value={project.airflow.returnTempC}
-                onChange={(v) => set((p) => ({ ...p, airflow: { ...p.airflow, returnTempC: v } }))} />
-              <NumField label="Altitude (m)" value={project.meta.altitude}
-                onChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, altitude: v } }))} />
-              <div className="rounded-md border border-border bg-background/50 p-3">
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Air Density</div>
-                <div className="mt-1 text-lg numeric font-semibold">{fmt(result.airDensity, 4)} <span className="text-xs text-muted-foreground">kg/m³</span></div>
+          {/* SECTION A — Project Information */}
+          <Panel icon={<Wind className="h-4 w-4" />} title="A · Project Information"
+            subtitle="Reference details and airflow volumes — used for documentation">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <TextField label="Project Name" value={project.meta.name}
+                onChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, name: v } }))} />
+              <TextField label="Client Name" value={project.meta.client}
+                onChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, client: v } }))} />
+              <TextField label="AHU Name / Number" value={project.meta.ahuTag}
+                onChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, ahuTag: v } }))} />
+              <TextField label="Location" value={project.meta.location}
+                onChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, location: v } }))} />
+              <TextField label="Prepared By" value={project.meta.preparedBy ?? project.meta.engineer}
+                onChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, preparedBy: v } }))} />
+              <div>
+                <Label className="text-xs text-muted-foreground">Airflow Unit</Label>
+                <Select value={unit}
+                  onValueChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, airflowUnit: v as any } }))}>
+                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {AIRFLOW_UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="mt-3 flex items-center gap-3 text-xs">
-              <Badge variant={result.airBalance.ok ? "default" : "destructive"}>
-                {result.airBalance.ok ? "Balance OK" : `Imbalance ${result.airBalance.supplyReturnDeltaPct.toFixed(1)} %`}
-              </Badge>
-              <span className="text-muted-foreground">S − R + F − E = target</span>
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <NumField label={`Supply Airflow (${unit})`} value={project.airflow.supply}
+                onChange={(v) => set((p) => ({ ...p, airflow: { ...p.airflow, supply: v } }))} />
+              <NumField label={`Return Airflow (${unit}) — optional`} value={project.airflow.return_}
+                onChange={(v) => set((p) => ({ ...p, airflow: { ...p.airflow, return_: v } }))} />
+              <NumField label={`Fresh Airflow (${unit}) — optional`} value={project.airflow.fresh}
+                onChange={(v) => set((p) => ({ ...p, airflow: { ...p.airflow, fresh: v } }))} />
+              <NumField label={`Exhaust Airflow (${unit}) — optional`} value={project.airflow.exhaust}
+                onChange={(v) => set((p) => ({ ...p, airflow: { ...p.airflow, exhaust: v } }))} />
             </div>
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              Airflow values are reference-only for the report. Duct pressure loss is driven by the per-section airflow you enter in the Duct Network table.
+            </p>
           </Panel>
 
           {/* SECTION B — External Components */}
           <Panel icon={<Layers className="h-4 w-4" />} title="B · External Components"
-            subtitle={`External components loss: ${fmt(result.ahuInternalLoss, 0)} Pa · (excludes internal AHU losses)`}
+            subtitle={`Selected components loss: ${fmt(result.ahuInternalLoss, 0)} Pa · internal AHU losses excluded`}
             action={
               <Button size="sm" variant="secondary" onClick={() => set((p) => ({
                 ...p, ahuComponents: [...p.ahuComponents, {
@@ -118,54 +127,52 @@ function Workspace() {
                   name: "Custom Component", enabled: true, pressureDrop: 0,
                 }],
               }))}>
-                <Plus className="h-4 w-4 mr-1" /> Add Custom
+                <Plus className="h-4 w-4 mr-1" /> Add Custom Component
               </Button>
             }>
-            <Accordion type="multiple" defaultValue={["ahu"]}>
-              <AccordionItem value="ahu" className="border-none">
-                <AccordionTrigger className="py-1 text-sm">Show / hide components</AccordionTrigger>
-                <AccordionContent>
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {project.ahuComponents.map((c) => (
-                      <div key={c.id} className="flex items-center gap-3 rounded-md border border-border bg-background/40 px-3 py-2">
-                        <Checkbox checked={c.enabled}
-                          onCheckedChange={(v) => set((p) => ({
-                            ...p, ahuComponents: p.ahuComponents.map((x) => x.id === c.id ? { ...x, enabled: !!v } : x),
-                          }))} />
-                        <Input className="h-8 flex-1 min-w-0 text-sm" value={c.name}
-                          onChange={(e) => set((p) => ({
-                            ...p, ahuComponents: p.ahuComponents.map((x) =>
-                              x.id === c.id ? { ...x, name: e.target.value } : x),
-                          }))} />
-                        <div className="flex items-center gap-1">
-                          <Input type="number" className="h-8 w-20 text-right numeric" value={c.pressureDrop}
-                            onChange={(e) => set((p) => ({
-                              ...p, ahuComponents: p.ahuComponents.map((x) =>
-                                x.id === c.id ? { ...x, pressureDrop: Number(e.target.value) || 0 } : x),
-                            }))} />
-                          <span className="text-xs text-muted-foreground">Pa</span>
-                        </div>
-                        <button
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={() => set((p) => ({
-                            ...p, ahuComponents: p.ahuComponents.filter((x) => x.id !== c.id),
-                          }))}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
+            <div className="grid gap-2 md:grid-cols-2">
+              {project.ahuComponents.map((c) => {
+                const isPreset = EXTERNAL_COMPONENT_PRESETS.some((p) => p.name === c.name);
+                return (
+                  <div key={c.id} className="flex items-center gap-3 rounded-md border border-border bg-background/40 px-3 py-2">
+                    <Checkbox checked={c.enabled}
+                      onCheckedChange={(v) => set((p) => ({
+                        ...p, ahuComponents: p.ahuComponents.map((x) => x.id === c.id ? { ...x, enabled: !!v } : x),
+                      }))} />
+                    <Input className="h-8 flex-1 min-w-0 text-sm" value={c.name} readOnly={isPreset}
+                      onChange={(e) => set((p) => ({
+                        ...p, ahuComponents: p.ahuComponents.map((x) =>
+                          x.id === c.id ? { ...x, name: e.target.value } : x),
+                      }))} />
+                    <div className="flex items-center gap-1">
+                      <Input type="number" className="h-8 w-20 text-right numeric" value={c.pressureDrop}
+                        onChange={(e) => set((p) => ({
+                          ...p, ahuComponents: p.ahuComponents.map((x) =>
+                            x.id === c.id ? { ...x, pressureDrop: Number(e.target.value) || 0 } : x),
+                        }))} />
+                      <span className="text-xs text-muted-foreground">Pa</span>
+                    </div>
+                    {!isPreset && (
+                      <button
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => set((p) => ({
+                          ...p, ahuComponents: p.ahuComponents.filter((x) => x.id !== c.id),
+                        }))}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
-                  <p className="mt-3 text-[11px] text-muted-foreground">
-                    External duct-side components only. Do <b>not</b> include fan, coils, internal AHU filters, mixing box or drain pan — those are computed by the AHU manufacturer as part of Total Static Pressure.
-                  </p>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              Tick any component installed on the duct side. Pressure drops are editable. Fan, coils, internal AHU filters, mixing box and drain pan are computed by the AHU manufacturer and are <b>never</b> added here.
+            </p>
           </Panel>
 
           {/* SECTION C — Ducts */}
           <Panel icon={<RouteIcon className="h-4 w-4" />} title="C · Duct Network"
-            subtitle="Editable schedule — Colebrook–White, Huebscher equivalent diameter"
+            subtitle={`Colebrook–White, Huebscher equivalent diameter${result.criticalRun ? ` · Critical Run: ${result.criticalRun}` : ""}`}
             action={
               <Button size="sm" variant="secondary" onClick={() => set((p) => ({
                 ...p, segments: [...p.segments, newSegment(p.segments.length + 1)],
@@ -186,6 +193,7 @@ function Workspace() {
                   <DuctTable
                     segments={k === "all" ? project.segments : project.segments.filter((s) => s.kind === k)}
                     results={result.segments}
+                    criticalRun={result.criticalRun}
                     onChange={(id, patch) => set((p) => ({
                       ...p, segments: p.segments.map((s) => s.id === id ? { ...s, ...patch } : s),
                     }))}
@@ -206,9 +214,9 @@ function Workspace() {
             </Tabs>
           </Panel>
 
-          {/* SECTION E — Terminal */}
-          <Panel icon={<Sparkles className="h-4 w-4" />} title="E · Terminal Device"
-            subtitle="Diffuser / grille pressure drop">
+          {/* SECTION E — Terminal / Air Distribution Device */}
+          <Panel icon={<Sparkles className="h-4 w-4" />} title="D · Terminal / Air Distribution Device"
+            subtitle="Diffuser / grille pressure drop — editable">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs text-muted-foreground">Type</Label>
@@ -290,10 +298,7 @@ function Workspace() {
           <div className="panel p-5 relative overflow-hidden">
             <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
             <div className="relative">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Total ESP</span>
-                <StatusBadge status={result.engineeringStatus} />
-              </div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">External Static Pressure</div>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="numeric text-4xl font-semibold text-primary">{fmt(result.totalEspPa, 0)}</span>
                 <span className="text-sm text-muted-foreground">Pa</span>
@@ -304,59 +309,35 @@ function Workspace() {
 
               <div className="mt-4 space-y-1.5 text-xs">
                 <Row label="External Components" value={result.ahuInternalLoss} />
-                <Row label="Supply Ducts" value={result.supplyLoss} />
-                <Row label="Return Ducts" value={result.returnLoss} />
-                <Row label="Fresh Air" value={result.freshLoss} />
-                <Row label="Exhaust" value={result.exhaustLoss} />
-                <Row label="Terminal" value={result.terminalLoss} />
+                <Row label="Supply Duct Loss" value={result.supplyLoss} />
+                <Row label="Return Duct Loss" value={result.returnLoss} />
+                <Row label="Fresh Air Loss" value={result.freshLoss} />
+                <Row label="Exhaust Air Loss" value={result.exhaustLoss} />
+                <Row label="Terminal Loss" value={result.terminalLoss} />
                 <div className="border-t border-border my-2" />
                 <Row label="Subtotal" value={result.subtotalPa} strong />
-                <Row label={`Safety (+${((project.meta.safetyFactor - 1) * 100).toFixed(0)} %)`} value={result.safetyAddedPa} />
-                <Row label="EXTERNAL STATIC PRESSURE" value={result.totalEspPa} strong highlight />
+                <Row label={`Safety Factor (+${((project.meta.safetyFactor - 1) * 100).toFixed(0)} %)`} value={result.safetyAddedPa} />
+                <Row label="FINAL EXTERNAL STATIC PRESSURE" value={result.totalEspPa} strong highlight />
               </div>
 
               <div className="mt-4 rounded-md bg-background/60 border border-border p-3 text-[11px] text-muted-foreground leading-relaxed">
-                This value is the <b className="text-foreground">External Static Pressure</b> the HVAC contractor submits to the AHU manufacturer. It excludes fan, coil, internal filter, mixing box and drain pan losses.
+                This External Static Pressure value is submitted to the AHU manufacturer. Internal AHU losses are intentionally excluded.
               </div>
 
-              <div className="mt-4">
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Critical Path</div>
-                <div className="flex flex-wrap gap-1">
-                  {result.criticalPath.map((s, i) => (
-                    <span key={i} className="inline-flex items-center text-[11px] font-medium px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
-                      {s}{i < result.criticalPath.length - 1 && <ChevronsRight className="h-3 w-3 mx-0.5 opacity-50" />}
-                    </span>
-                  ))}
+              {result.criticalRun && (
+                <div className="mt-4">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Critical Run</div>
+                  <span className="inline-flex items-center text-xs font-semibold px-2 py-1 rounded bg-primary/15 text-primary">
+                    {result.criticalRun}
+                  </span>
                 </div>
-              </div>
+              )}
 
               <Button className="mt-5 w-full" onClick={() => nav({ to: "/report/$id", params: { id } })}>
                 <FileText className="h-4 w-4 mr-1.5" /> Open Report
               </Button>
             </div>
           </div>
-
-          {/* Warnings */}
-          {result.warnings.length > 0 && (
-            <div className="panel p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <TriangleAlert className="h-4 w-4 text-warning" />
-                Engineering Findings <span className="text-xs text-muted-foreground">({result.warnings.length})</span>
-              </div>
-              <ul className="mt-3 space-y-2">
-                {result.warnings.map((w, i) => (
-                  <li key={i} className="text-xs rounded-md border border-border bg-background/40 p-2.5">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={w.level === "critical" ? "destructive" : w.level === "warn" ? "secondary" : "outline"}
-                        className="text-[10px] uppercase">{w.level}</Badge>
-                      <span className="font-medium">{w.message}</span>
-                    </div>
-                    {w.recommendation && <div className="mt-1 text-muted-foreground">{w.recommendation}</div>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </aside>
       </main>
     </div>
@@ -370,6 +351,7 @@ function newSegment(n: number): DuctSegment {
     id: "seg-" + Math.random().toString(36).slice(2, 8),
     section: `S${n}`, kind: "supply", airflow: 500, shape: "rect",
     width: 400, height: 250, diameter: 350, length: 5, material: "galvanized",
+    remark: "", runId: "Run 1",
     fittings: [],
   };
 }
@@ -402,6 +384,16 @@ function NumField({ label, value, onChange }:
   );
 }
 
+function TextField({ label, value, onChange }:
+  { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Input className="mt-1.5" value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
+
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-border bg-background/50 p-3">
@@ -421,20 +413,12 @@ function Row({ label, value, strong, highlight }:
   );
 }
 
-function StatusBadge({ status }: { status: "ok" | "review" | "critical" }) {
-  const map = {
-    ok: { label: "OK", cls: "bg-success/20 text-success border-success/40" },
-    review: { label: "REVIEW", cls: "bg-warning/20 text-warning border-warning/40" },
-    critical: { label: "CRITICAL", cls: "bg-destructive/20 text-destructive border-destructive/40" },
-  }[status];
-  return <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wider ${map.cls}`}>{map.label}</span>;
-}
-
 /* ---------- duct table ---------- */
 
-function DuctTable({ segments, results, onChange, onDelete, onDuplicate, onFittings }: {
+function DuctTable({ segments, results, criticalRun, onChange, onDelete, onDuplicate, onFittings }: {
   segments: DuctSegment[];
   results: ReturnType<typeof calculate>["segments"];
+  criticalRun?: string;
   onChange: (id: string, patch: Partial<DuctSegment>) => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
@@ -446,7 +430,7 @@ function DuctTable({ segments, results, onChange, onDelete, onDuplicate, onFitti
         <table className="w-full text-xs">
           <thead className="bg-secondary text-secondary-foreground">
             <tr>
-              {["Sec", "Type", "Q L/s", "Shape", "W mm", "H mm", "Ø mm", "L m", "Material", "Fittings", "V m/s", "ΔP Pa", ""].map((h) =>
+              {["Sec", "Run", "Remark", "Type", "Q L/s", "Shape", "W mm", "H mm", "Ø mm", "L m", "Material", "Fittings", "V m/s", "ΔP Pa", ""].map((h) =>
                 <th key={h} className="px-2 py-2 text-left font-medium whitespace-nowrap">{h}</th>)}
             </tr>
           </thead>
@@ -454,10 +438,15 @@ function DuctTable({ segments, results, onChange, onDelete, onDuplicate, onFitti
             {segments.map((s) => {
               const r = results.find((x) => x.id === s.id);
               const vColor = !r ? "" : r.velocityMs > 12 ? "text-destructive" : r.velocityMs > 8 ? "text-warning" : r.velocityMs < 2 ? "text-warning" : "text-success";
+              const isCritical = criticalRun && (s.runId || s.section) === criticalRun && s.kind === "supply";
               return (
-                <tr key={s.id} className="border-t border-border hover:bg-background/40">
+                <tr key={s.id} className={`border-t border-border hover:bg-background/40 ${isCritical ? "bg-primary/5" : ""}`}>
                   <td className="px-1 py-1"><Input className="h-8 w-16" value={s.section}
                     onChange={(e) => onChange(s.id, { section: e.target.value })} /></td>
+                  <td className="px-1 py-1"><Input className="h-8 w-20" placeholder="Run 1" value={s.runId ?? ""}
+                    onChange={(e) => onChange(s.id, { runId: e.target.value })} /></td>
+                  <td className="px-1 py-1"><Input className="h-8 w-32" placeholder="e.g. Reception" value={s.remark ?? ""}
+                    onChange={(e) => onChange(s.id, { remark: e.target.value })} /></td>
                   <td className="px-1 py-1">
                     <Select value={s.kind} onValueChange={(v) => onChange(s.id, { kind: v as SegmentKind })}>
                       <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
@@ -518,7 +507,7 @@ function DuctTable({ segments, results, onChange, onDelete, onDuplicate, onFitti
               );
             })}
             {segments.length === 0 && (
-              <tr><td colSpan={13} className="p-6 text-center text-muted-foreground">No sections. Click "Add Section" to begin.</td></tr>
+              <tr><td colSpan={15} className="p-6 text-center text-muted-foreground">No sections. Click "Add Section" to begin.</td></tr>
             )}
           </tbody>
         </table>
@@ -587,7 +576,7 @@ function FittingsButton({ segment, onChange }: { segment: DuctSegment; onChange:
                   className="w-full flex items-center justify-between px-3 py-2 hover:bg-secondary text-left">
                   <div>
                     <div className="text-sm">{f.name}</div>
-                    <div className="text-[10px] text-muted-foreground">{f.code} · {f.category}{f.ref ? ` · ${f.ref}` : ""}</div>
+                    <div className="text-[10px] text-muted-foreground">{f.code} · {f.category}{(f as any).ref ? ` · ${(f as any).ref}` : ""}</div>
                   </div>
                   <span className="text-xs numeric font-medium">K = {f.k}</span>
                 </button>

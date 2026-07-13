@@ -6,7 +6,7 @@ import { exportPdf, exportExcel } from "@/lib/esp/export";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Download, FileSpreadsheet, FileText, Printer, ChevronsRight } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { MATERIAL_LABEL } from "@/lib/esp/physics";
 import { TERMINAL_LABEL } from "@/lib/esp/defaults";
 
@@ -65,12 +65,21 @@ function Report() {
           <section className="mt-6 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
             <Field label="Project" value={project.meta.name} />
             <Field label="Client" value={project.meta.client} />
-            <Field label="Consultant" value={project.meta.consultant} />
-            <Field label="Engineer" value={project.meta.engineer} />
-            <Field label="Project #" value={project.meta.projectNumber} />
             <Field label="AHU Tag" value={project.meta.ahuTag} />
             <Field label="Location" value={project.meta.location} />
-            <Field label="Altitude" value={`${project.meta.altitude} m`} />
+            <Field label="Prepared By" value={project.meta.preparedBy || project.meta.engineer} />
+            <Field label="Airflow Unit" value={project.meta.airflowUnit ?? "L/s"} />
+          </section>
+
+          {/* Airflow summary */}
+          <section className="mt-6">
+            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Airflow Reference</h3>
+            <div className="grid grid-cols-4 gap-3 text-sm">
+              <SumCard label={`Supply (${project.meta.airflowUnit ?? "L/s"})`} value={fmt(project.airflow.supply, 0)} />
+              <SumCard label={`Return (${project.meta.airflowUnit ?? "L/s"})`} value={fmt(project.airflow.return_, 0)} />
+              <SumCard label={`Fresh (${project.meta.airflowUnit ?? "L/s"})`} value={fmt(project.airflow.fresh, 0)} />
+              <SumCard label={`Exhaust (${project.meta.airflowUnit ?? "L/s"})`} value={fmt(project.airflow.exhaust, 0)} />
+            </div>
           </section>
 
           {/* ESP Summary */}
@@ -81,7 +90,7 @@ function Report() {
           </section>
 
           <section className="mt-6">
-            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Pressure Breakdown</h3>
+            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-2">External Static Pressure Breakdown</h3>
             <div className="rounded-md border border-border overflow-hidden">
               <table className="w-full text-sm">
                 <tbody>
@@ -90,9 +99,8 @@ function Report() {
                     ["Supply Duct Loss", result.supplyLoss],
                     ["Return Duct Loss", result.returnLoss],
                     ["Fresh Air Loss", result.freshLoss],
-                    ["Exhaust Loss", result.exhaustLoss],
-                    ["Fittings (incl. in ducts)", result.fittingsLossTotal],
-                    ["Terminal Loss", result.terminalLoss],
+                    ["Exhaust Air Loss", result.exhaustLoss],
+                    ["Terminal Device Loss", result.terminalLoss],
                     ["Subtotal", result.subtotalPa],
                     [`Safety Factor (+${((project.meta.safetyFactor - 1) * 100).toFixed(0)} %)`, result.safetyAddedPa],
                   ].map(([label, val]) => (
@@ -102,35 +110,34 @@ function Report() {
                     </tr>
                   ))}
                   <tr className="bg-primary/10">
-                    <td className="px-3 py-2 font-semibold">EXTERNAL STATIC PRESSURE</td>
+                    <td className="px-3 py-2 font-semibold">FINAL EXTERNAL STATIC PRESSURE</td>
                     <td className="px-3 py-2 numeric text-right font-bold text-primary">{fmt(result.totalEspPa, 0)} Pa</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <p className="mt-2 text-[11px] text-muted-foreground">
-              ESP excludes fan, coil, internal AHU filter, mixing box and drain pan losses — those are computed by the AHU manufacturer as Total Static Pressure.
+              This value is submitted to the AHU manufacturer. Fan, coils, internal AHU filters, mixing box and drain pan losses are excluded — they are computed by the manufacturer as Total Static Pressure.
             </p>
           </section>
 
-          <section className="mt-6">
-            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Critical Path</h3>
-            <div className="flex flex-wrap gap-1 text-xs">
-              {result.criticalPath.map((s, i) => (
-                <span key={i} className="inline-flex items-center px-2 py-1 rounded bg-secondary font-medium">
-                  {s}{i < result.criticalPath.length - 1 && <ChevronsRight className="h-3 w-3 mx-1 opacity-50" />}
-                </span>
-              ))}
-            </div>
-          </section>
+          {result.criticalRun && (
+            <section className="mt-6">
+              <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Critical Run</h3>
+              <div className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
+                <span className="font-semibold text-primary">{result.criticalRun}</span>
+                <span className="text-muted-foreground"> — highest supply-side pressure loss run in this AHU system.</span>
+              </div>
+            </section>
+          )}
 
           <section className="mt-6">
-            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Duct Schedule</h3>
+            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Duct Network Schedule</h3>
             <div className="rounded-md border border-border overflow-hidden">
-              <table className="w-full text-xs numeric">
+              <table className="w-full text-xs">
                 <thead className="bg-secondary text-secondary-foreground">
                   <tr>
-                    {["Sec", "Type", "Q L/s", "Size mm", "L m", "Material", "V m/s", "ΔP/m Pa", "Total Pa"].map((h) =>
+                    {["Sec", "Run", "Remark", "Type", `Q ${project.meta.airflowUnit ?? "L/s"}`, "Size mm", "L m", "Material", "V m/s", "Total Pa"].map((h) =>
                       <th key={h} className="px-2 py-1.5 text-left">{h}</th>)}
                   </tr>
                 </thead>
@@ -141,14 +148,15 @@ function Report() {
                     return (
                       <tr key={r.id} className="border-t border-border">
                         <td className="px-2 py-1">{r.section}</td>
-                        <td className="px-2 py-1">{r.kind}</td>
-                        <td className="px-2 py-1">{fmt(seg.airflow, 0)}</td>
-                        <td className="px-2 py-1">{size}</td>
-                        <td className="px-2 py-1">{fmt(seg.length, 1)}</td>
+                        <td className="px-2 py-1">{seg.runId ?? "—"}</td>
+                        <td className="px-2 py-1">{seg.remark ?? "—"}</td>
+                        <td className="px-2 py-1 capitalize">{r.kind}</td>
+                        <td className="px-2 py-1 numeric">{fmt(seg.airflow, 0)}</td>
+                        <td className="px-2 py-1 numeric">{size}</td>
+                        <td className="px-2 py-1 numeric">{fmt(seg.length, 1)}</td>
                         <td className="px-2 py-1">{MATERIAL_LABEL[seg.material]}</td>
-                        <td className="px-2 py-1">{fmt(r.velocityMs, 2)}</td>
-                        <td className="px-2 py-1">{fmt(r.frictionPerMPa, 2)}</td>
-                        <td className="px-2 py-1 font-semibold">{fmt(r.totalLossPa, 1)}</td>
+                        <td className="px-2 py-1 numeric">{fmt(r.velocityMs, 2)}</td>
+                        <td className="px-2 py-1 numeric font-semibold">{fmt(r.totalLossPa, 1)}</td>
                       </tr>
                     );
                   })}
@@ -157,47 +165,21 @@ function Report() {
             </div>
           </section>
 
-          <section className="mt-6 grid grid-cols-2 gap-4 text-sm">
-            <div className="rounded-md border border-border p-3">
-              <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Engineering Summary</div>
-              <div className="space-y-1 text-xs">
-                <Line label="Air density" value={`${fmt(result.airDensity, 4)} kg/m³`} />
-                <Line label="Dyn. viscosity" value={result.dynamicViscosity.toExponential(3) + " Pa·s"} />
-                <Line label="Terminal" value={TERMINAL_LABEL[project.terminal.kind]} />
-                <Line label="Safety factor" value={`+${((project.meta.safetyFactor - 1) * 100).toFixed(0)} %`} />
-                <Line label="Status" value={result.engineeringStatus.toUpperCase()} />
-                <Line label="Air balance" value={result.airBalance.ok ? "OK" : `Δ ${result.airBalance.supplyReturnDeltaPct.toFixed(1)}%`} />
-              </div>
-            </div>
-            <div className="rounded-md border border-border p-3">
-              <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Assumptions</div>
-              <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
-                <li>Colebrook–White friction factor (Serghides)</li>
-                <li>Darcy–Weisbach straight-duct loss</li>
-                <li>Huebscher equivalent circular diameter</li>
-                <li>Air density from altitude and mean air temperature</li>
-                <li>Fitting losses computed on local Vp</li>
-                <li>Safety factor applied to entire subtotal</li>
-              </ul>
+          <section className="mt-6">
+            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Terminal Device</h3>
+            <div className="rounded-md border border-border p-3 text-sm flex justify-between">
+              <span>{TERMINAL_LABEL[project.terminal.kind]}</span>
+              <span className="numeric font-medium">{fmt(project.terminal.pressureDrop, 0)} Pa</span>
             </div>
           </section>
 
-          {result.warnings.length > 0 && (
-            <section className="mt-6">
-              <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Recommendations & Warnings</h3>
-              <div className="space-y-2">
-                {result.warnings.map((w, i) => (
-                  <div key={i} className="rounded-md border border-border p-3 text-xs">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={w.level === "critical" ? "destructive" : "secondary"}>{w.level.toUpperCase()}</Badge>
-                      <span className="font-medium">{w.message}</span>
-                    </div>
-                    {w.recommendation && <div className="mt-1 text-muted-foreground">{w.recommendation}</div>}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+          {/* Signatures */}
+          <section className="mt-10 grid grid-cols-2 gap-8">
+            <SignBlock label="Prepared By" name={project.meta.preparedBy || project.meta.engineer} />
+            <SignBlock label="Approved By" name="" />
+          </section>
+
+
 
           <footer className="mt-8 border-t border-border pt-4 text-xs text-muted-foreground flex justify-between">
             <span>Intel Air ESP Pro · {project.meta.name}</span>
@@ -230,6 +212,17 @@ function Line({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-medium">{value}</span>
+    </div>
+  );
+}
+function SignBlock({ label, name }: { label: string; name: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-8">{label}</div>
+      <div className="border-t border-border pt-2">
+        <div className="text-sm font-medium">{name || "—"}</div>
+        <div className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Signature & Date</div>
+      </div>
     </div>
   );
 }

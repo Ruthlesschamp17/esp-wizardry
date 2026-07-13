@@ -41,10 +41,10 @@ export function exportPdf(project: EspProject, result: CalcResult) {
     styles: { fontSize: 9, cellPadding: 4 },
     headStyles: { fillColor: [40, 46, 60], textColor: 255 },
     body: [
-      ["Project", project.meta.name, "Client", project.meta.client || "—"],
-      ["Consultant", project.meta.consultant || "—", "Engineer", project.meta.engineer || "—"],
-      ["Project #", project.meta.projectNumber || "—", "AHU Tag", project.meta.ahuTag || "—"],
-      ["Location", project.meta.location || "—", "Altitude (m)", String(project.meta.altitude)],
+      ["Project", project.meta.name, "AHU Tag", project.meta.ahuTag || "—"],
+      ["Client", project.meta.client || "—", "AHU Tag", project.meta.ahuTag || "—"],
+      ["Location", project.meta.location || "—", "Prepared By", project.meta.preparedBy || project.meta.engineer || "—"],
+      ["Airflow Unit", project.meta.airflowUnit ?? "L/s", "Altitude (m)", String(project.meta.altitude)],
       ["Safety Factor", `${((project.meta.safetyFactor - 1) * 100).toFixed(0)} %`, "Units", project.meta.units],
     ],
   });
@@ -87,14 +87,13 @@ export function exportPdf(project: EspProject, result: CalcResult) {
     theme: "grid",
     styles: { fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: [40, 46, 60], textColor: 255 },
-    head: [["Sec", "Type", "Q L/s", "Shape", "Size mm", "L m", "Material", "V m/s", "Dh m", "Re", "f", "ΔP/m", "Total Pa"]],
+    head: [["Sec", "Run", "Remark", "Type", `Q ${project.meta.airflowUnit ?? "L/s"}`, "Shape", "Size mm", "L m", "Material", "V m/s", "ΔP/m", "Total Pa"]],
     body: result.segments.map((r) => {
       const seg = project.segments.find((s) => s.id === r.id)!;
       const size = seg.shape === "round" ? `Ø${seg.diameter}` : `${seg.width}×${seg.height}`;
       return [
-        r.section, r.kind, fmt(seg.airflow, 0), seg.shape, size, fmt(seg.length, 1),
-        MATERIAL_LABEL[seg.material], fmt(r.velocityMs, 2), fmt(r.hydraulicDiameterM, 3),
-        fmt(r.reynolds, 0), fmt(r.frictionFactor, 4),
+        r.section, seg.runId ?? "—", seg.remark ?? "—", r.kind, fmt(seg.airflow, 0), seg.shape, size, fmt(seg.length, 1),
+        MATERIAL_LABEL[seg.material], fmt(r.velocityMs, 2),
         fmt(r.frictionPerMPa, 2), fmt(r.totalLossPa, 1),
       ];
     }),
@@ -112,26 +111,26 @@ export function exportPdf(project: EspProject, result: CalcResult) {
     body: [
       ["Air density (kg/m³)", fmt(result.airDensity, 4)],
       ["Dynamic viscosity (Pa·s)", result.dynamicViscosity.toExponential(3)],
-      ["Critical path", result.criticalPath.join(" → ")],
-      ["Terminal", TERMINAL_LABEL[project.terminal.kind]],
-      ["Status", result.engineeringStatus.toUpperCase()],
-      ["Air balance", result.airBalance.ok ? "OK" : `Δ ${result.airBalance.supplyReturnDeltaPct.toFixed(1)}%`],
+      ["Critical run", result.criticalRun ?? "—"],
+      ["Terminal device", TERMINAL_LABEL[project.terminal.kind]],
     ],
   });
-  y = (doc as any).lastAutoTable.finalY + 16;
+  y = (doc as any).lastAutoTable.finalY + 24;
 
-  if (result.warnings.length) {
-    doc.setFont("helvetica", "bold");
-    doc.text("Recommendations & Warnings", M, y);
-    autoTable(doc, {
-      startY: y + 4,
-      theme: "grid",
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [40, 46, 60], textColor: 255 },
-      head: [["Level", "Message", "Recommendation"]],
-      body: result.warnings.map((w) => [w.level.toUpperCase(), w.message, w.recommendation ?? "—"]),
-    });
-  }
+  // Signatures
+  if (y > 700) { doc.addPage(); y = M; }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("Prepared By", M, y);
+  doc.text("Approved By", W / 2 + 10, y);
+  doc.setDrawColor(160);
+  doc.line(M, y + 40, M + 200, y + 40);
+  doc.line(W / 2 + 10, y + 40, W / 2 + 210, y + 40);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.text(project.meta.preparedBy || project.meta.engineer || "—", M, y + 52);
+  doc.text("Signature & Date", M, y + 64);
+  doc.text("Signature & Date", W / 2 + 10, y + 64);
 
   // Footer
   const pages = doc.getNumberOfPages();
@@ -152,17 +151,15 @@ export function exportExcel(project: EspProject, result: CalcResult) {
   const wb = XLSX.utils.book_new();
 
   const info = [
-    ["Intel Air ESP Pro — ESP Calculation"],
+    ["Intel Air ESP Pro — External Static Pressure Calculation"],
     [],
     ["Project", project.meta.name],
     ["Client", project.meta.client],
-    ["Consultant", project.meta.consultant],
-    ["Engineer", project.meta.engineer],
-    ["Project #", project.meta.projectNumber],
     ["AHU Tag", project.meta.ahuTag],
     ["Location", project.meta.location],
+    ["Prepared By", project.meta.preparedBy || project.meta.engineer],
+    ["Airflow Unit", project.meta.airflowUnit ?? "L/s"],
     ["Altitude (m)", project.meta.altitude],
-    ["Units", project.meta.units],
     ["Safety Factor", project.meta.safetyFactor],
     ["Date", new Date().toISOString()],
   ];

@@ -16,6 +16,8 @@ export interface ProjectMeta {
   altitude: number; // meters
   units: Units;
   safetyFactor: number; // e.g. 1.10
+  preparedBy?: string;
+  airflowUnit?: "L/s" | "CMH" | "CFM";
 }
 
 export interface Airflow {
@@ -67,15 +69,26 @@ export interface DuctSegment {
   material: MaterialKey;
   fittings: Fitting[];
   isCritical?: boolean;
+  remark?: string;
+  runId?: string;
 }
 
 export type TerminalKind =
   | "supply-diffuser"
-  | "linear-slot"
-  | "jet-nozzle"
-  | "swirl"
-  | "eggcrate-return"
+  | "supply-grille"
   | "return-grille"
+  | "eggcrate-return"
+  | "linear-slot"
+  | "swirl"
+  | "jet-nozzle"
+  | "drum-louver"
+  | "ceiling-4way"
+  | "ceiling-3way"
+  | "ceiling-2way"
+  | "ceiling-1way"
+  | "floor-grille"
+  | "door-transfer"
+  | "custom"
   | "exhaust-grille"
   | "weather-louver";
 
@@ -129,6 +142,8 @@ export interface CalcResult {
   recommendedFanType: string;
   recommendedMotorKW: number;
   criticalPath: string[];         // section labels
+  criticalRun?: string;           // run label with highest supply-side loss
+
   segments: SegmentResult[];
   warnings: EngineWarning[];
   engineeringStatus: "ok" | "review" | "critical";
