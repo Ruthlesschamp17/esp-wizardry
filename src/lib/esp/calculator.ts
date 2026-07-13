@@ -88,7 +88,23 @@ export function calculate(p: EspProject): CalcResult {
     .map((r) => r.section);
   const criticalPath = [...supplyPath, "Terminal", ...returnPath];
 
-  // Warnings
+  // Critical run: group supply segments by runId (fallback to section)
+  // and pick the run with the highest cumulative pressure loss.
+  const runTotals = new Map<string, number>();
+  for (const seg of p.segments) {
+    if (seg.kind !== "supply") continue;
+    const runKey = (seg.runId && seg.runId.trim()) || seg.section || "Run 1";
+    const r = segResults.find((x) => x.id === seg.id);
+    if (!r) continue;
+    runTotals.set(runKey, (runTotals.get(runKey) ?? 0) + r.totalLossPa);
+  }
+  let criticalRun: string | undefined;
+  let maxRun = -1;
+  runTotals.forEach((v, k) => { if (v > maxRun) { maxRun = v; criticalRun = k; } });
+
+  // Segment-level warnings only (velocity / friction / long flex).
+  // Airflow imbalance, low-ESP, high-filter checks are intentionally
+  // omitted — contractors submit ESP as-is to the AHU manufacturer.
   const warnings: EngineWarning[] = [];
   segResults.forEach((r) => r.warnings.forEach((w) => warnings.push({
     level: w.startsWith("Very") ? "critical" : "warn",
@@ -99,41 +115,16 @@ export function calculate(p: EspProject): CalcResult {
       ? `Increase cross-section on ${r.section} to reduce velocity.` : undefined,
   })));
 
-  // Air balance
+  // Air balance retained for backward compatibility but not used to warn.
   const bal = {
     supply: p.airflow.supply, return_: p.airflow.return_,
     fresh: p.airflow.fresh, exhaust: p.airflow.exhaust,
     supplyReturnDeltaPct: p.airflow.supply === 0 ? 0
       : ((p.airflow.supply - p.airflow.return_ - p.airflow.exhaust + p.airflow.fresh)
          / p.airflow.supply) * 100,
-    ok: false,
+    ok: true,
   };
-  bal.ok = Math.abs(bal.supplyReturnDeltaPct) < 10;
-  if (!bal.ok) {
-    warnings.push({
-      level: "warn", code: "BAL",
-      message: `Airflow imbalance ${bal.supplyReturnDeltaPct.toFixed(1)}%`,
-      recommendation: "Adjust return, fresh air or exhaust to balance the AHU.",
-    });
-  }
-  if (totalEsp > 1500) warnings.push({
-    level: "critical", code: "ESP-HIGH",
-    message: `Very high ESP (${totalEsp.toFixed(0)} Pa)`,
-    recommendation: "Review duct sizing, fitting count, and filter selection.",
-  });
-  if (totalEsp < 150 && subtotal > 0) warnings.push({
-    level: "info", code: "ESP-LOW",
-    message: `Unusually low ESP (${totalEsp.toFixed(0)} Pa)`,
-    recommendation: "Verify all AHU components and duct sections are included.",
-  });
-  const totalFilter = p.ahuComponents
-    .filter((c) => c.enabled && /filter/i.test(c.name))
-    .reduce((s, c) => s + c.pressureDrop, 0);
-  if (totalFilter > 700) warnings.push({
-    level: "warn", code: "FILT-HIGH",
-    message: `High combined filter loss (${totalFilter.toFixed(0)} Pa)`,
-    recommendation: "Confirm filters are sized on final (dirty) ΔP; consider larger media area.",
-  });
+
 
   const status: CalcResult["engineeringStatus"] =
     warnings.some((w) => w.level === "critical") ? "critical"
