@@ -142,6 +142,8 @@ export interface CalcResult {
   recommendedFanType: string;
   recommendedMotorKW: number;
   criticalPath: string[];         // section labels
+  criticalRun?: string;           // run label with highest supply-side loss
+
   segments: SegmentResult[];
   warnings: EngineWarning[];
   engineeringStatus: "ok" | "review" | "critical";
