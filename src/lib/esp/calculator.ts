@@ -137,7 +137,7 @@ export function calculate(p: EspProject): CalcResult {
     subtotalPa: subtotal, safetyAddedPa: safetyAdded, totalEspPa: totalEsp,
     recommendedFanStaticPa: 0,
     recommendedFanType: "", recommendedMotorKW: 0,
-    criticalPath, segments: segResults, warnings,
+    criticalPath, criticalRun, segments: segResults, warnings,
     engineeringStatus: status, airBalance: bal,
   };
 }
