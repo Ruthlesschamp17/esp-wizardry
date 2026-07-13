@@ -2,44 +2,71 @@ import type { AhuComponent, EspProject, Terminal, TerminalKind } from "./types";
 
 export const TERMINAL_LABEL: Record<TerminalKind, string> = {
   "supply-diffuser": "Supply Diffuser",
-  "linear-slot": "Linear Slot Diffuser",
-  "jet-nozzle": "Jet / Nozzle Diffuser",
-  "swirl": "Swirl Diffuser",
-  "eggcrate-return": "Eggcrate Return",
+  "supply-grille": "Supply Grille",
   "return-grille": "Return Grille",
+  "eggcrate-return": "Egg Crate Return Grille",
+  "linear-slot": "Linear Slot Diffuser",
+  "swirl": "Swirl Diffuser",
+  "jet-nozzle": "Jet Nozzle",
+  "drum-louver": "Drum Louver",
+  "ceiling-4way": "Ceiling Diffuser (4 Way)",
+  "ceiling-3way": "Ceiling Diffuser (3 Way)",
+  "ceiling-2way": "Ceiling Diffuser (2 Way)",
+  "ceiling-1way": "Ceiling Diffuser (1 Way)",
+  "floor-grille": "Floor Grille",
+  "door-transfer": "Door Transfer Grille",
+  "custom": "Custom",
   "exhaust-grille": "Exhaust Grille",
   "weather-louver": "Weather Louver",
 };
 
 export const TERMINAL_DEFAULT_PA: Record<TerminalKind, number> = {
   "supply-diffuser": 25,
+  "supply-grille": 20,
+  "return-grille": 15,
+  "eggcrate-return": 10,
   "linear-slot": 30,
-  "jet-nozzle": 40,
   "swirl": 35,
-  "eggcrate-return": 15,
-  "return-grille": 20,
+  "jet-nozzle": 50,
+  "drum-louver": 40,
+  "ceiling-4way": 25,
+  "ceiling-3way": 25,
+  "ceiling-2way": 25,
+  "ceiling-1way": 25,
+  "floor-grille": 20,
+  "door-transfer": 10,
+  "custom": 25,
   "exhaust-grille": 20,
   "weather-louver": 50,
 };
 
-// External-only components. Never include internal AHU losses (fan, coils,
-// internal filters, mixing box, drain pan) — those belong to the AHU
-// manufacturer's Total Static Pressure, not ESP.
+// Preset list of common contractor-side external components.
+// Users can toggle any of these on/off and edit the pressure drop,
+// or add fully custom components. Internal AHU losses (fan, coils,
+// internal filters, mixing box, drain pan) are NEVER included here.
+export const EXTERNAL_COMPONENT_PRESETS: Array<{ name: string; pa: number }> = [
+  { name: "Fire Damper", pa: 25 },
+  { name: "Volume Control Damper (VCD)", pa: 20 },
+  { name: "Opposed Blade Damper (OBD)", pa: 30 },
+  { name: "Back Draft Damper", pa: 25 },
+  { name: "Sound Attenuator / Silencer", pa: 60 },
+  { name: "Flexible Duct", pa: 15 },
+  { name: "Flexible Connector", pa: 10 },
+  { name: "Duct Heater", pa: 40 },
+  { name: "HEPA Filter (In-Duct)", pa: 500 },
+  { name: "Bag Filter (In-Duct)", pa: 150 },
+  { name: "Pre Filter (In-Duct)", pa: 80 },
+  { name: "UV Section", pa: 15 },
+  { name: "VAV Box", pa: 75 },
+  { name: "CAV Box", pa: 75 },
+];
+
 export function defaultAhuComponents(): AhuComponent[] {
-  const rows: Array<[string, number, boolean]> = [
-    ["Duct Heater", 40, false],
-    ["Sound Attenuator (Silencer)", 60, false],
-    ["HEPA Filter (in-duct)", 500, false],
-    ["Bag Filter (in-duct)", 150, false],
-    ["Pre Filter (in-duct)", 80, false],
-    ["UV Section (in-duct)", 15, false],
-    ["Terminal Box (VAV/CAV)", 75, false],
-  ];
-  return rows.map(([name, dp, enabled], i) => ({
+  return EXTERNAL_COMPONENT_PRESETS.map((c, i) => ({
     id: `ext-${i}`,
-    name,
-    enabled,
-    pressureDrop: dp,
+    name: c.name,
+    enabled: false,
+    pressureDrop: c.pa,
   }));
 }
 
@@ -64,6 +91,8 @@ export function emptyProject(id: string): EspProject {
       altitude: 0,
       units: "SI",
       safetyFactor: 1.10,
+      preparedBy: "",
+      airflowUnit: "L/s",
     },
     airflow: {
       supply: 1000,
@@ -79,6 +108,7 @@ export function emptyProject(id: string): EspProject {
         id: "seg-1", section: "S1", kind: "supply", airflow: 1000,
         shape: "rect", width: 500, height: 300, diameter: 400,
         length: 10, material: "galvanized",
+        remark: "Main Supply", runId: "Run 1",
         fittings: [
           { id: "f1", code: "ELB-90-SR", name: "90° Smooth Radius Elbow (R/D=1.5)", category: "Elbows", k: 0.22, qty: 2 },
           { id: "f2", code: "DMP-VCD",  name: "Volume Control Damper (open)",       category: "Dampers", k: 0.19, qty: 1 },
@@ -88,6 +118,7 @@ export function emptyProject(id: string): EspProject {
         id: "seg-2", section: "R1", kind: "return", airflow: 900,
         shape: "rect", width: 550, height: 350, diameter: 450,
         length: 8, material: "galvanized",
+        remark: "Main Return", runId: "Run 1",
         fittings: [
           { id: "f3", code: "ELB-90-SR", name: "90° Smooth Radius Elbow (R/D=1.5)", category: "Elbows", k: 0.22, qty: 1 },
         ],
