@@ -151,17 +151,15 @@ export function exportExcel(project: EspProject, result: CalcResult) {
   const wb = XLSX.utils.book_new();
 
   const info = [
-    ["Intel Air ESP Pro — ESP Calculation"],
+    ["Intel Air ESP Pro — External Static Pressure Calculation"],
     [],
     ["Project", project.meta.name],
     ["Client", project.meta.client],
-    ["Consultant", project.meta.consultant],
-    ["Engineer", project.meta.engineer],
-    ["Project #", project.meta.projectNumber],
     ["AHU Tag", project.meta.ahuTag],
     ["Location", project.meta.location],
+    ["Prepared By", project.meta.preparedBy || project.meta.engineer],
+    ["Airflow Unit", project.meta.airflowUnit ?? "L/s"],
     ["Altitude (m)", project.meta.altitude],
-    ["Units", project.meta.units],
     ["Safety Factor", project.meta.safetyFactor],
     ["Date", new Date().toISOString()],
   ];
