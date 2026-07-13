@@ -16,6 +16,8 @@ export interface ProjectMeta {
   altitude: number; // meters
   units: Units;
   safetyFactor: number; // e.g. 1.10
+  preparedBy?: string;
+  airflowUnit?: "L/s" | "CMH" | "CFM";
 }
 
 export interface Airflow {
