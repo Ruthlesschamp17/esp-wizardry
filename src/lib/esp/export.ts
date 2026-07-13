@@ -87,14 +87,13 @@ export function exportPdf(project: EspProject, result: CalcResult) {
     theme: "grid",
     styles: { fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: [40, 46, 60], textColor: 255 },
-    head: [["Sec", "Type", "Q L/s", "Shape", "Size mm", "L m", "Material", "V m/s", "Dh m", "Re", "f", "ΔP/m", "Total Pa"]],
+    head: [["Sec", "Run", "Remark", "Type", `Q ${project.meta.airflowUnit ?? "L/s"}`, "Shape", "Size mm", "L m", "Material", "V m/s", "ΔP/m", "Total Pa"]],
     body: result.segments.map((r) => {
       const seg = project.segments.find((s) => s.id === r.id)!;
       const size = seg.shape === "round" ? `Ø${seg.diameter}` : `${seg.width}×${seg.height}`;
       return [
-        r.section, r.kind, fmt(seg.airflow, 0), seg.shape, size, fmt(seg.length, 1),
-        MATERIAL_LABEL[seg.material], fmt(r.velocityMs, 2), fmt(r.hydraulicDiameterM, 3),
-        fmt(r.reynolds, 0), fmt(r.frictionFactor, 4),
+        r.section, seg.runId ?? "—", seg.remark ?? "—", r.kind, fmt(seg.airflow, 0), seg.shape, size, fmt(seg.length, 1),
+        MATERIAL_LABEL[seg.material], fmt(r.velocityMs, 2),
         fmt(r.frictionPerMPa, 2), fmt(r.totalLossPa, 1),
       ];
     }),
