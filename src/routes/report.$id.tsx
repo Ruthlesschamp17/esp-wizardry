@@ -6,7 +6,7 @@ import { exportPdf, exportExcel } from "@/lib/esp/export";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Download, FileSpreadsheet, FileText, Printer, ChevronsRight } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { MATERIAL_LABEL } from "@/lib/esp/physics";
 import { TERMINAL_LABEL } from "@/lib/esp/defaults";
 
