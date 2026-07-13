@@ -41,7 +41,7 @@ export function exportPdf(project: EspProject, result: CalcResult) {
     styles: { fontSize: 9, cellPadding: 4 },
     headStyles: { fillColor: [40, 46, 60], textColor: 255 },
     body: [
-      ["Project", project.meta.name, "Client", project.meta.client || "—"],
+      ["Project", project.meta.name, "AHU Tag", project.meta.ahuTag || "—"],
       ["Client", project.meta.client || "—", "AHU Tag", project.meta.ahuTag || "—"],
       ["Location", project.meta.location || "—", "Prepared By", project.meta.preparedBy || project.meta.engineer || "—"],
       ["Airflow Unit", project.meta.airflowUnit ?? "L/s", "Altitude (m)", String(project.meta.altitude)],
