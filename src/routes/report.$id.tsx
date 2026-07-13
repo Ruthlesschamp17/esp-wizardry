@@ -215,3 +215,14 @@ function Line({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+function SignBlock({ label, name }: { label: string; name: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-8">{label}</div>
+      <div className="border-t border-border pt-2">
+        <div className="text-sm font-medium">{name || "—"}</div>
+        <div className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Signature & Date</div>
+      </div>
+    </div>
+  );
+}
