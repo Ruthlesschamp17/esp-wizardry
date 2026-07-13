@@ -42,9 +42,9 @@ export function exportPdf(project: EspProject, result: CalcResult) {
     headStyles: { fillColor: [40, 46, 60], textColor: 255 },
     body: [
       ["Project", project.meta.name, "Client", project.meta.client || "—"],
-      ["Consultant", project.meta.consultant || "—", "Engineer", project.meta.engineer || "—"],
-      ["Project #", project.meta.projectNumber || "—", "AHU Tag", project.meta.ahuTag || "—"],
-      ["Location", project.meta.location || "—", "Altitude (m)", String(project.meta.altitude)],
+      ["Client", project.meta.client || "—", "AHU Tag", project.meta.ahuTag || "—"],
+      ["Location", project.meta.location || "—", "Prepared By", project.meta.preparedBy || project.meta.engineer || "—"],
+      ["Airflow Unit", project.meta.airflowUnit ?? "L/s", "Altitude (m)", String(project.meta.altitude)],
       ["Safety Factor", `${((project.meta.safetyFactor - 1) * 100).toFixed(0)} %`, "Units", project.meta.units],
     ],
   });
