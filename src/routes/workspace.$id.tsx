@@ -347,6 +347,22 @@ function Workspace() {
                 </div>
               )}
 
+              {result.criticalPath.length > 0 && (
+                <div className="mt-4">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Critical Path</div>
+                  <ol className="space-y-0.5 text-xs">
+                    {result.criticalPath.map((step, i) => (
+                      <li key={i} className="flex flex-col items-start">
+                        <span className="px-2 py-0.5 rounded bg-background/60 border border-border">{step}</span>
+                        {i < result.criticalPath.length - 1 && (
+                          <span className="text-muted-foreground pl-2 leading-none">↓</span>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
               <Button className="mt-5 w-full" onClick={() => nav({ to: "/report/$id", params: { id } })}>
                 <FileText className="h-4 w-4 mr-1.5" /> Open Report
               </Button>
