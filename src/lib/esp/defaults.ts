@@ -40,18 +40,17 @@ export const TERMINAL_DEFAULT_PA: Record<TerminalKind, number> = {
   "weather-louver": 50,
 };
 
-// Preset list of common contractor-side external components.
-// Users can toggle any of these on/off and edit the pressure drop,
-// or add fully custom components. Internal AHU losses (fan, coils,
-// internal filters, mixing box, drain pan) are NEVER included here.
+// Preset list of common contractor-side external components (shown in the
+// "+ Add Component" picker). Internal AHU losses (fan, coils, internal
+// filters, mixing box, drain pan) are NEVER included here.
 export const EXTERNAL_COMPONENT_PRESETS: Array<{ name: string; pa: number }> = [
   { name: "Fire Damper", pa: 25 },
   { name: "Volume Control Damper (VCD)", pa: 20 },
   { name: "Opposed Blade Damper (OBD)", pa: 30 },
   { name: "Back Draft Damper", pa: 25 },
-  { name: "Sound Attenuator / Silencer", pa: 60 },
-  { name: "Flexible Duct", pa: 15 },
   { name: "Flexible Connector", pa: 10 },
+  { name: "Flexible Duct", pa: 15 },
+  { name: "Sound Attenuator / Silencer", pa: 60 },
   { name: "Duct Heater", pa: 40 },
   { name: "HEPA Filter (In-Duct)", pa: 500 },
   { name: "Bag Filter (In-Duct)", pa: 150 },
@@ -59,15 +58,32 @@ export const EXTERNAL_COMPONENT_PRESETS: Array<{ name: string; pa: number }> = [
   { name: "UV Section", pa: 15 },
   { name: "VAV Box", pa: 75 },
   { name: "CAV Box", pa: 75 },
+  { name: "Supply Grille", pa: 20 },
+  { name: "Return Grille", pa: 15 },
+  { name: "Supply Diffuser", pa: 25 },
+  { name: "Return Diffuser", pa: 20 },
+  { name: "Egg Crate Grille", pa: 10 },
+  { name: "Linear Slot Diffuser", pa: 30 },
+  { name: "Jet Nozzle", pa: 50 },
 ];
 
+// Typical company defaults — pre-loaded and enabled for new projects so
+// contractors start productive. Everything else is added via + Add Component.
+const DEFAULT_ENABLED = new Set([
+  "Volume Control Damper (VCD)",
+  "Flexible Connector",
+  "Fire Damper",
+]);
+
 export function defaultAhuComponents(): AhuComponent[] {
-  return EXTERNAL_COMPONENT_PRESETS.map((c, i) => ({
-    id: `ext-${i}`,
-    name: c.name,
-    enabled: false,
-    pressureDrop: c.pa,
-  }));
+  return EXTERNAL_COMPONENT_PRESETS
+    .filter((c) => DEFAULT_ENABLED.has(c.name))
+    .map((c, i) => ({
+      id: `ext-${i}`,
+      name: c.name,
+      enabled: true,
+      pressureDrop: c.pa,
+    }));
 }
 
 export function defaultTerminal(): Terminal {
