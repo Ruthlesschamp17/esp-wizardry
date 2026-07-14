@@ -119,25 +119,43 @@ function Workspace() {
           <Panel icon={<Layers className="h-4 w-4" />} title="B · External Components"
             subtitle={`Selected components loss: ${fmt(result.ahuInternalLoss, 0)} Pa · internal AHU losses excluded`}
             action={
-              <Button size="sm" variant="secondary" onClick={() => set((p) => ({
-                ...p, ahuComponents: [...p.ahuComponents, {
-                  id: "ext-" + Math.random().toString(36).slice(2, 8),
-                  name: "Custom Component", enabled: true, pressureDrop: 0,
-                }],
-              }))}>
-                <Plus className="h-4 w-4 mr-1" /> Add Custom Component
-              </Button>
+              <Select value=""
+                onValueChange={(name) => {
+                  if (!name) return;
+                  const preset = EXTERNAL_COMPONENT_PRESETS.find((p) => p.name === name);
+                  set((p) => ({
+                    ...p, ahuComponents: [...p.ahuComponents, {
+                      id: "ext-" + Math.random().toString(36).slice(2, 8),
+                      name: preset ? preset.name : "Custom Component",
+                      enabled: true,
+                      pressureDrop: preset ? preset.pa : 0,
+                    }],
+                  }));
+                }}>
+                <SelectTrigger className="h-8 w-52">
+                  <span className="flex items-center gap-1.5 text-sm"><Plus className="h-3.5 w-3.5" /> Add Component</span>
+                </SelectTrigger>
+                <SelectContent className="max-h-80">
+                  {EXTERNAL_COMPONENT_PRESETS.map((c) => (
+                    <SelectItem key={c.name} value={c.name}>{c.name} <span className="text-muted-foreground">· {c.pa} Pa</span></SelectItem>
+                  ))}
+                  <SelectItem value="__custom__">Custom Component…</SelectItem>
+                </SelectContent>
+              </Select>
             }>
-            <div className="grid gap-2 md:grid-cols-2">
-              {project.ahuComponents.map((c) => {
-                const isPreset = EXTERNAL_COMPONENT_PRESETS.some((p) => p.name === c.name);
-                return (
+            {project.ahuComponents.length === 0 ? (
+              <div className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                No external components yet. Use <b>+ Add Component</b> to select any dampers, filters, silencers or terminals installed on the duct side.
+              </div>
+            ) : (
+              <div className="grid gap-2 md:grid-cols-2">
+                {project.ahuComponents.map((c) => (
                   <div key={c.id} className="flex items-center gap-3 rounded-md border border-border bg-background/40 px-3 py-2">
                     <Checkbox checked={c.enabled}
                       onCheckedChange={(v) => set((p) => ({
                         ...p, ahuComponents: p.ahuComponents.map((x) => x.id === c.id ? { ...x, enabled: !!v } : x),
                       }))} />
-                    <Input className="h-8 flex-1 min-w-0 text-sm" value={c.name} readOnly={isPreset}
+                    <Input className="h-8 flex-1 min-w-0 text-sm" value={c.name}
                       onChange={(e) => set((p) => ({
                         ...p, ahuComponents: p.ahuComponents.map((x) =>
                           x.id === c.id ? { ...x, name: e.target.value } : x),
@@ -150,21 +168,19 @@ function Workspace() {
                         }))} />
                       <span className="text-xs text-muted-foreground">Pa</span>
                     </div>
-                    {!isPreset && (
-                      <button
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => set((p) => ({
-                          ...p, ahuComponents: p.ahuComponents.filter((x) => x.id !== c.id),
-                        }))}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+                    <button
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => set((p) => ({
+                        ...p, ahuComponents: p.ahuComponents.filter((x) => x.id !== c.id),
+                      }))}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
             <p className="mt-3 text-[11px] text-muted-foreground">
-              Tick any component installed on the duct side. Pressure drops are editable. Fan, coils, internal AHU filters, mixing box and drain pan are computed by the AHU manufacturer and are <b>never</b> added here.
+              Tick to include, edit pressure drop as needed. Fan, coils, internal AHU filters, mixing box and drain pan are computed by the AHU manufacturer and are <b>never</b> added here.
             </p>
           </Panel>
 
