@@ -240,7 +240,7 @@ function Workspace() {
                   }))}>
                   <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(TERMINAL_LABEL) as TerminalKind[]).map((t) =>
+                    {(["supply-diffuser","return-grille","supply-grille","linear-slot","jet-nozzle","eggcrate-return","custom"] as TerminalKind[]).map((t) =>
                       <SelectItem key={t} value={t}>{TERMINAL_LABEL[t]}</SelectItem>)}
                   </SelectContent>
                 </Select>
