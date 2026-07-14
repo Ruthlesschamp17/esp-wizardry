@@ -83,12 +83,10 @@ function Workspace() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <TextField label="Project Name" value={project.meta.name}
                 onChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, name: v } }))} />
-              <TextField label="Client Name" value={project.meta.client}
+              <TextField label="Client" value={project.meta.client}
                 onChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, client: v } }))} />
-              <TextField label="AHU Name / Number" value={project.meta.ahuTag}
+              <TextField label="AHU Number" value={project.meta.ahuTag}
                 onChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, ahuTag: v } }))} />
-              <TextField label="Location" value={project.meta.location}
-                onChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, location: v } }))} />
               <TextField label="Prepared By" value={project.meta.preparedBy ?? project.meta.engineer}
                 onChange={(v) => set((p) => ({ ...p, meta: { ...p.meta, preparedBy: v } }))} />
               <div>
